@@ -121,9 +121,21 @@ bash device/xiaomi/sagit/scripts/fetch_blobs.sh device/xiaomi/sagit
 
 # 4. Build
 source build/envsetup.sh
-lunch twrp_sagit-eng
+
+# fox_14.1 uses the Android 14 QPR3 build system, where lunch ONLY accepts
+# <product>-<release>-<variant>. The 2-part form fails with
+#   Invalid lunch combo: twrp_sagit-eng
+# Pick a release name from the tree, e.g.:
+ls build/release/release_config_map.d
+lunch twrp_sagit-trunk_staging-eng     # 14.1 - use a release that exists
+
+# 12.1 and 11.0 still accept the short form:
+# lunch twrp_sagit-eng
+
 mka adbd recoveryimage
 ```
+
+The CI workflow probes both forms and prints the combo it settled on.
 
 Output: `out/target/product/sagit/OrangeFox-unofficial-sagit.img`
 
@@ -184,6 +196,20 @@ The ROM tree is not a recovery tree, but it is authoritative for hardware facts.
   Worth revisiting only if a ROM-side quota check ever complains.
 
 ## Known issues and how to work around them
+
+**`Invalid lunch combo: twrp_sagit-eng` / `Valid combos must be of the form
+<product>-<release>-<variant>`.** On `fox_14.1` the build system is Android 14
+QPR3, and its `lunch` splits the argument on `-` into exactly three parts:
+
+```sh
+IFS="-" read -r product release variant <<< "$selection"
+[[ -z "$product" ]] || [[ -z "$release" ]] || [[ -z "$variant" ]] && error
+```
+
+`twrp_sagit-eng` yields `release=eng` and an empty `variant`, so it is rejected —
+the 2-part form in the OrangeFox wiki only works on 12.1 and older. Use
+`lunch twrp_sagit-<release>-eng` with a release taken from
+`build/release/release_config_map.d`. The CI workflow auto-detects it.
 
 **Image too large for the 64 MiB recovery partition.** The workflow prints the
 size and fails the step if it exceeds `BOARD_RECOVERYIMAGE_PARTITION_SIZE`.

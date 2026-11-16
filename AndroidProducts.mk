@@ -17,5 +17,11 @@
 PRODUCT_MAKEFILES := \
     $(LOCAL_DIR)/twrp_sagit.mk
 
+# NOTE: on fox_14.1 (Android 14 QPR3 build system) lunch requires
+# <product>-<release>-<variant>, so the 2-part entry below only works for the
+# interactive menu on 12.1/11.0. For 14.1 use e.g.
+#   lunch twrp_sagit-<release>-eng
+# where <release> is any name found in build/release/release_config_map.d.
+# The CI workflow probes for a working combo automatically.
 COMMON_LUNCH_CHOICES := \
     twrp_sagit-eng

@@ -217,7 +217,43 @@ jobs:
           source build/envsetup.sh
           set -e
 
-          lunch "twrp_${DEVICE}-eng"
+          # ---- pick a lunch combo -------------------------------------------
+          # fox_14.1 ships the Android 14 QPR3 build system, whose lunch only
+          # accepts <product>-<release>-<variant>:
+          #   IFS="-" read -r product release variant <<< "$selection"
+          #   [[ -z "$variant" ]] && echo "Invalid lunch combo: ..."
+          # so "twrp_sagit-eng" is rejected (release=eng, variant empty).
+          # 12.1 and 11.0 still accept the 2-part form, so try that first.
+          COMBO=""
+          if lunch "twrp_${DEVICE}-eng" >/dev/null 2>&1; then
+            COMBO="twrp_${DEVICE}-eng"
+          else
+            mapdir="$SRC/build/release/release_config_map.d"
+            releases=""
+            if [ -d "$mapdir" ]; then
+              releases=$(ls "$mapdir" 2>/dev/null | sed -n 's/\.textproto$//p')
+            fi
+            [ -n "$releases" ] || releases="trunk_staging bp1a ap3a next experimental"
+            echo "release configs found: $(echo $releases | tr '\n' ' ')"
+            for rel in $releases; do
+              echo "--- trying twrp_${DEVICE}-${rel}-eng"
+              if lunch "twrp_${DEVICE}-${rel}-eng" >/dev/null 2>&1; then
+                COMBO="twrp_${DEVICE}-${rel}-eng"
+                break
+              fi
+            done
+          fi
+
+          if [ -z "$COMBO" ]; then
+            echo "::error::could not find a valid lunch combo"
+            echo "release configs available in the tree:"
+            ls "$SRC/build/release/release_config_map.d" 2>/dev/null || echo "(none)"
+            exit 1
+          fi
+
+          echo "==> lunch combo: $COMBO"
+          lunch "$COMBO"
+
           mka adbd "${BUILD_TARGET}image" 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
 
       # ------------------------------------------------------------------
