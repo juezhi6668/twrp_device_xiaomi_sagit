@@ -1,0 +1,8 @@
+# Android build files must keep LF endings - a CRLF makefile breaks the build
+* text=auto eol=lf
+
+# Explicit binary safety net (these are gitignored, but just in case)
+*.img   binary
+*.gz    binary
+*.so    binary
+*.zip   binary

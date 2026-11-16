@@ -1,0 +1,17 @@
+# Proprietary / generated files pulled in by scripts/fetch_blobs.sh
+/prebuilt/Image.gz-dtb
+/recovery/root/system/bin/
+/recovery/root/vendor/lib64/
+/recovery/root/system/etc/event-log-tags
+
+# Build output
+/out/
+*.img
+*.zip
+/artifacts/
+/build.log
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
