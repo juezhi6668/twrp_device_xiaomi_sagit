@@ -71,25 +71,35 @@ inherited via `inherit-product-if-exists`, exactly like `fox_vayu.mk` upstream.
 
 ## Building with GitHub Actions
 
-1. Push this repository to GitHub (default branch `main`).
+1. Push this repository to GitHub.
 2. **Actions → Build OrangeFox Recovery (sagit) → Run workflow**.
-3. Pick `fox_branch` (`14.1` recommended for R12.x) and run.
+3. Pick the inputs and run:
 
-The workflow:
+| Input | Default | Notes |
+|---|---|---|
+| `fox_branch` | `14.1` | `14.1` = R12.x / Android 14, `12.1` = R11.x |
+| `build_target` | `recovery` | `recovery` / `boot` / `vendorboot` |
+| `swap_gb` | `8` | set to `0` if the runner runs out of disk |
+
+The workflow builds whatever commit is checked out — it does not clone the
+device tree from a URL.
 
 | Step | What it does |
 |---|---|
-| Free disk space | removes .NET / Android SDK / GHC / CodeQL → ~25 GB back |
+| Free disk space | removes .NET / Android SDK / GHC / CodeQL → ~25 GB back, fails early if < 70 GB |
+| Swap | optional swap file (counts against free disk) |
 | Install deps | build-essential, flex, bison, python3, `repo` launcher |
 | Sync | `git clone https://gitlab.com/OrangeFox/sync.git` then `./orangefox_sync.sh --branch 14.1 --path /home/runner/fox` |
 | Place tree | rsync this repo → `$SRC/device/xiaomi/sagit` |
 | Blobs | `scripts/fetch_blobs.sh` (prebuilt kernel + vendor libs) |
+| task_profiles | copies `task_profiles_28.json` so logcat works on 14.1 |
+| Sanity check | verifies `BoardConfig.mk`, `AndroidProducts.mk`, `vendorsetup.sh`, kernel |
 | Build | `lunch twrp_sagit-eng` → `mka adbd recoveryimage` |
-| Upload | `OrangeFox-*.img`, `build.log`, `sync.log` as artifacts |
+| Collect | copies the image + `build.log` + `sync.log`, fails if no image or if it exceeds 64 MiB |
 
 Expect **1.5–3 hours** for `14.1` (the sync alone is ~85 GB of git objects).
-Artifacts are kept 14 days. Pushing a tag (`git tag v1 && git push --tags`) also
-creates a GitHub Release with the image attached.
+Artifacts are kept 14 days. A successful manual run also publishes a GitHub
+Release; push-triggered runs only produce artifacts.
 
 ---
 
