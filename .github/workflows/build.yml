@@ -132,6 +132,20 @@ jobs:
           echo "=== device tree ==="
           find "$SRC/device/xiaomi/$DEVICE" -type f | sort
 
+      - name: Add task_profiles.json
+        run: |
+          # fox_14.1 needs this for logd/logcat inside recovery. LineageOS 21
+          # ships the same file as system/core/libprocessgroup/profiles/
+          # task_profiles_28.json - copy it if the synced tree has it.
+          SRC_JSON="$SRC/system/core/libprocessgroup/profiles/task_profiles_28.json"
+          DST="$SRC/device/xiaomi/$DEVICE/recovery/root/system/etc/task_profiles.json"
+          if [ -f "$SRC_JSON" ]; then
+            mkdir -p "$(dirname "$DST")"
+            cp -v "$SRC_JSON" "$DST"
+          else
+            echo "::warning::task_profiles.json not in the synced tree - logcat inside recovery will not work"
+          fi
+
       - name: Fetch prebuilt kernel and vendor blobs
         run: |
           bash "$SRC/device/xiaomi/$DEVICE/scripts/fetch_blobs.sh" \

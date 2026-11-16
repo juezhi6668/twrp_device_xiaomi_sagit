@@ -141,6 +141,38 @@ REF_REPO=https://github.com/you/your_tree.git REF_BRANCH=my-branch \
 
 ---
 
+## Cross-checked against the LineageOS 21 tree (4.4 kernel)
+
+Reference: [`android_device_xiaomi_msm8998-common`](https://github.com/xiaomi-msm8998-devs/android_device_xiaomi_msm8998-common)
+@ branch **`lineage-21.0`** (Android 14, 4.4 kernel — matching sagit's stock kernel).
+
+The ROM tree is not a recovery tree, but it is authoritative for hardware facts.
+
+**What was taken from it**
+
+| Item | Finding | Action |
+|---|---|---|
+| `rootdir/etc/fstab.qcom` | partition layout confirmed: system on `system`, vendor on **`cust`**, dsp/firmware_mnt/bt_firmware all under `/vendor/` | our `recovery.fstab` already matches |
+| Keymaster / gatekeeper | `keymaster@3.0-impl` + `gatekeeper@1.0-impl` | confirms `OF_DEFAULT_KEYMASTER_VERSION=3.0` |
+| Health HAL | only **HIDL** `health@2.1` (+ `health-service.qti`), no AIDL health | `TW_USE_LEGACY_BATTERY_SERVICES := true` is correct |
+| Kernel cmdline | adds `loop.max_part=7` | added to `BOARD_KERNEL_CMDLINE` |
+| `task_profiles.json` | copied from `system/core/libprocessgroup/profiles/task_profiles_28.json` | CI copies it automatically |
+| Kernel source | `TARGET_KERNEL_SOURCE := kernel/xiaomi/msm8998`, `TARGET_KERNEL_CONFIG := vendor/xiaomi/mi8998_defconfig` | use these if you switch to building the kernel from source |
+
+**What was deliberately NOT taken**
+
+- `BOARD_VNDK_VERSION := current`, `PRODUCT_FULL_TREBLE_OVERRIDE`, `BOARD_USES_QCOM_HARDWARE`,
+  `TARGET_USES_GRALLOC1` / `HWC2` / `ION` — whole-ROM concerns, irrelevant to a
+  recovery ramdisk.
+- `sepolicy/` — recovery runs with `androidboot.selinux=permissive`. Only needed if
+  you ever want an enforcing recovery.
+- `overlay/`, `rro_overlays/`, `gps/`, `camera/`, `wifi/` — not part of recovery.
+- `/mnt/vendor/persist` + `BOARD_ROOT_EXTRA_SYMLINKS` — LineageOS moves persist
+  under `/mnt/vendor/`; TWRP expects `/persist`, so the TWRP layout was kept.
+- `quota,reservedsize=128M` on `/data` — LineageOS formats userdata with ext4 quota.
+  TWRP uses different `mke2fs` flags, so adding these risks a broken format.
+  Worth revisiting only if a ROM-side quota check ever complains.
+
 ## Known issues and how to work around them
 
 **Image too large for the 64 MiB recovery partition.** The workflow prints the
@@ -161,9 +193,11 @@ keymaster 3.0; `OF_DEFAULT_KEYMASTER_VERSION=3.0` is already exported. Check tha
 fetched. FBE on Android 14 with a 2017 kernel is the most fragile part of this port.
 
 **Logcat inside recovery does nothing.** On `fox_14.1`, logcat needs
-`recovery/root/system/etc/task_profiles.json`. Copy one from any Android 14 ROM,
-or build with `CUSTOM_BUILD_DEBUG := true` in `BoardConfig.mk` and see whether
-logd starts.
+`recovery/root/system/etc/task_profiles.json`. The CI workflow copies it from
+`system/core/libprocessgroup/profiles/task_profiles_28.json` in the synced tree;
+for local builds do the same, or copy one out of any Android 14 ROM. Also build
+with `CUSTOM_BUILD_DEBUG := true` in `BoardConfig.mk` so logd is actually
+included.
 
 **`module not found: android.hardware.vibrator-ndk_platform`.** Android 14 no
 longer ships the vibrator NDK HAL. It is commented out in `BoardConfig.mk`; port

@@ -62,12 +62,18 @@ TARGET_NO_BOOTLOADER := true
 # OF_FORCE_PREBUILT_KERNEL=1 is exported in vendorsetup.sh.
 BOARD_KERNEL_BASE := 0x00000000
 BOARD_KERNEL_PAGESIZE := 4096
+BOARD_KERNEL_IMAGE_NAME := Image.gz-dtb
 TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/Image.gz-dtb
 
+# Cross-checked against the LineageOS 21 common tree (4.4 kernel branch):
+#   device/xiaomi/msm8998-common/BoardConfigCommon.mk @ lineage-21.0
+# loop.max_part=7 comes from there and lets recovery scan partitions on loop
+# devices, which is what image flashing relies on.
 BOARD_KERNEL_CMDLINE := androidboot.console=ttyMSM0 androidboot.hardware=qcom
 BOARD_KERNEL_CMDLINE += user_debug=31 msm_rtb.filter=0x37 ehci-hcd.park=3
 BOARD_KERNEL_CMDLINE += service_locator.enable=1
 BOARD_KERNEL_CMDLINE += swiotlb=2048
+BOARD_KERNEL_CMDLINE += loop.max_part=7
 BOARD_KERNEL_CMDLINE += androidboot.usbcontroller=a800000.dwc3
 BOARD_KERNEL_CMDLINE += androidboot.configfs=true
 BOARD_KERNEL_CMDLINE += androidboot.selinux=permissive
@@ -138,8 +144,9 @@ TW_THEME := portrait_hdpi
 TW_CUSTOM_CPU_TEMP_PATH := /sys/devices/virtual/thermal/thermal_zone5/temp
 TW_DEVICE_VERSION := fox-sagit
 TW_FRAMERATE := 60
-# Android 14 recovery defaults to the AIDL health HAL; msm8998 only has the
-# legacy sysfs battery interface, so keep the legacy path enabled.
+# Android 14 recovery defaults to the AIDL health HAL. LineageOS 21 for this
+# platform only ships HIDL health@2.1 (android.hardware.health-service.qti +
+# android.hardware.health@2.1.vendor), so keep the legacy sysfs battery path.
 TW_USE_LEGACY_BATTERY_SERVICES := true
 
 # The recovery partition on sagit is only 64 MiB. If the image ever exceeds
